@@ -49,8 +49,23 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    if (config.cors.allowedOrigins.includes(origin)) {
+    // Normalize origin (remove trailing slash)
+    const normalizedOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
+    
+    // Check if origin is in allowed list (also check normalized version)
+    const isAllowed = config.cors.allowedOrigins.some(allowed => {
+      const normalizedAllowed = allowed.endsWith('/') ? allowed.slice(0, -1) : allowed;
+      return normalizedOrigin === normalizedAllowed || normalizedOrigin === allowed;
+    });
+    
+    if (isAllowed) {
       return callback(null, true);
+    }
+    
+    // Log CORS rejection for debugging (only in development)
+    if (!config.isProduction) {
+      console.log('CORS blocked origin:', normalizedOrigin);
+      console.log('Allowed origins:', config.cors.allowedOrigins);
     }
     
     // Return error that will be handled by error handler middleware

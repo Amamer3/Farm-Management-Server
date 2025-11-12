@@ -52,7 +52,7 @@ export const config = {
     allowedOrigins: process.env.CORS_ORIGIN 
       ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
       : isProduction 
-        ? [] // No default origins in production - must be explicitly set
+        ? ['https://farm-management-system-five.vercel.app'] // Default production origin
         : ['http://localhost:8080', 'http://localhost:3000', 'http://127.0.0.1:8080', 'http://127.0.0.1:3000', 'https://farm-management-system-five.vercel.app'],
     credentials: true
   },
