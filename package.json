@@ -2,9 +2,9 @@
   "name": "farm-management-backend",
   "version": "1.0.0",
   "description": "Node.js Express backend with TypeScript for Farm Management System",
-  "main": "dist/app.js",
+  "main": "dist/server.js",
   "scripts": {
-    "start": "node dist/app.js",
+    "start": "node dist/server.js",
     "dev": "nodemon -r tsconfig-paths/register src/server.ts",
     "build": "tsc",
     "create-admin": "ts-node -r tsconfig-paths/register scripts/create-admin.ts",
