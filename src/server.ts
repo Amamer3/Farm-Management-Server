@@ -15,24 +15,47 @@ if (!fs.existsSync(logsDir)) {
 // Initialize Firebase
 // Firebase service is already initialized as singleton
 
-// Initialize all services BEFORE importing the app
-initializeServices();
+try {
+  // Initialize all services BEFORE importing the app
+  console.log('Initializing services...');
+  initializeServices();
+  console.log('Services initialized successfully');
+} catch (error) {
+  console.error('Failed to initialize services:', error);
+  process.exit(1);
+}
 
 // Import app
 import app from './app';
 
 // Start metrics collection
-startMetricsCollection();
+try {
+  console.log('Starting metrics collection...');
+  startMetricsCollection();
+  console.log('Metrics collection started');
+} catch (error) {
+  console.error('Failed to start metrics collection:', error);
+  // Don't exit - metrics is optional
+}
 
 // Handle uncaught exceptions gracefully
 process.on('uncaughtException', (err: Error) => {
-  logger.error('Uncaught Exception - Shutting down gracefully', {
-    error: {
-      name: err.name,
-      message: err.message,
-      stack: err.stack
-    }
+  console.error('Uncaught Exception - Shutting down gracefully', {
+    name: err.name,
+    message: err.message,
+    stack: err.stack
   });
+  try {
+    logger.error('Uncaught Exception - Shutting down gracefully', {
+      error: {
+        name: err.name,
+        message: err.message,
+        stack: err.stack
+      }
+    });
+  } catch (logError) {
+    // Logger might not be initialized
+  }
   
   // Give time for logs to be written
   setTimeout(() => {
@@ -42,7 +65,7 @@ process.on('uncaughtException', (err: Error) => {
 
 // Handle unhandled promise rejections gracefully
 process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
-  logger.error('Unhandled Rejection - Shutting down gracefully', {
+  console.error('Unhandled Rejection - Shutting down gracefully', {
     reason: reason instanceof Error ? {
       name: reason.name,
       message: reason.message,
@@ -50,6 +73,18 @@ process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
     } : reason,
     promise: promise.toString()
   });
+  try {
+    logger.error('Unhandled Rejection - Shutting down gracefully', {
+      reason: reason instanceof Error ? {
+        name: reason.name,
+        message: reason.message,
+        stack: reason.stack
+      } : reason,
+      promise: promise.toString()
+    });
+  } catch (logError) {
+    // Logger might not be initialized
+  }
   
   // Give time for logs to be written
   setTimeout(() => {
