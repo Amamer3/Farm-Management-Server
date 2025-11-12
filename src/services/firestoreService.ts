@@ -302,13 +302,31 @@ class FirestoreService {
 
   public async getUserByEmail(email: string): Promise<User | null> {
     try {
-      const snapshot = await this.db
+      // Normalize email: lowercase and trim
+      const normalizedEmail = email.toLowerCase().trim();
+      
+      // Try exact match first (case-sensitive for backward compatibility)
+      let snapshot = await this.db
         .collection('users')
-        .where('email', '==', email)
+        .where('email', '==', normalizedEmail)
         .limit(1)
         .get();
 
+      // If not found, try case-insensitive search by getting all users and filtering
       if (snapshot.empty) {
+        const allUsersSnapshot = await this.db
+          .collection('users')
+          .get();
+        
+        const matchingUser = allUsersSnapshot.docs.find(doc => {
+          const userData = doc.data() as User;
+          return userData.email?.toLowerCase().trim() === normalizedEmail;
+        });
+
+        if (matchingUser) {
+          return matchingUser.data() as User;
+        }
+        
         return null;
       }
 

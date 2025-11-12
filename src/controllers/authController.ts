@@ -23,6 +23,9 @@ export class AuthController extends BaseController {
           throw ErrorFactory.validation('Missing required fields: email, password, name, and role are required');
       }
 
+      // Normalize email: lowercase and trim
+      const normalizedEmail = email.toLowerCase().trim();
+
       // Validate role is a valid enum value
       const validRoles = Object.values(UserRole);
       if (!validRoles.includes(role)) {
@@ -37,17 +40,17 @@ export class AuthController extends BaseController {
           throw ErrorFactory.authorization('Only administrators can register new users');
       }
 
-      // Create user in Better Auth
+      // Create user in Better Auth (will normalize email internally)
         const authUser = await this.firebaseService.createUser({
-        email,
+        email: normalizedEmail,
         password,
         displayName: name
       });
 
-      // Create user document in Firestore
+      // Create user document in Firestore (use normalized email to match Better Auth)
         const userData = {
           id: authUser.id,
-        email,
+        email: normalizedEmail, // Use normalized email
         name,
         role,
           farmId: farmId || currentUser.farmId,
@@ -90,8 +93,11 @@ export class AuthController extends BaseController {
           throw ErrorFactory.validation('Email and password are required');
       }
 
+        // Normalize email: lowercase and trim before authentication
+        const normalizedEmail = email.toLowerCase().trim();
+
         // Sign in with Better Auth
-        const authUser = await this.firebaseService.signInWithEmailAndPassword(email, password);
+        const authUser = await this.firebaseService.signInWithEmailAndPassword(normalizedEmail, password);
       
       // Get user data from Firestore
         const userData = await this.firestoreService.getUserById(authUser.uid);
