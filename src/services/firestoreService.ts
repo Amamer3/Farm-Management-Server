@@ -1335,10 +1335,16 @@ class FirestoreService {
 
   public async getMedicineById(medicineId: string): Promise<any> {
     try {
+      if (!medicineId || medicineId.trim() === '') {
+        console.error('[FIRESTORE] getMedicineById - empty medicineId provided');
+        throw new Error('Medicine ID is required');
+      }
+      
       const medicineRef = this.db.collection('medicineInventory').doc(medicineId);
       const doc = await medicineRef.get();
       
       if (!doc.exists) {
+        console.error('[FIRESTORE] getMedicineById - medicine not found', { medicineId });
         throw new Error('Medicine not found');
       }
       
@@ -1347,7 +1353,7 @@ class FirestoreService {
         ...doc.data()
       };
     } catch (error) {
-      console.error('Error getting medicine by ID:', error);
+      console.error('[FIRESTORE] Error getting medicine by ID:', error);
       throw error;
     }
   }

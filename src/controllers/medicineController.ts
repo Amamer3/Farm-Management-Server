@@ -577,35 +577,49 @@ export class MedicineController {
       }
 
       // Get treatment history from medicine usage
-      const filters: any = { farmId: targetFarmId };
+      // Build query options for getMedicineUsageHistory
+      const queryOptions: any = { farmId: targetFarmId };
       if (dateFrom) {
         try {
-          filters.startDate = new Date(dateFrom as string);
+          queryOptions.startDate = new Date(dateFrom as string);
         } catch (e) {
           // Invalid date, ignore
+          console.error('Invalid dateFrom:', dateFrom, e);
         }
       }
       if (dateTo) {
         try {
-          filters.endDate = new Date(dateTo as string);
+          queryOptions.endDate = new Date(dateTo as string);
         } catch (e) {
           // Invalid date, ignore
+          console.error('Invalid dateTo:', dateTo, e);
         }
       }
-      if (medicine) filters.medicineId = medicine as string;
+      if (medicine) {
+        queryOptions.medicineId = medicine as string;
+      }
 
       let usageHistoryResponse;
       try {
+        console.log('[MEDICINE] getTreatmentRecords - calling getMedicineUsageHistory', {
+          queryOptions,
+          page: parseInt(page as string),
+          limit: parseInt(limit as string)
+        });
         usageHistoryResponse = await firestoreService.getMedicineUsageHistory(
-          filters,
+          queryOptions,
           parseInt(page as string),
           parseInt(limit as string)
         );
+        console.log('[MEDICINE] getTreatmentRecords - getMedicineUsageHistory response', {
+          success: usageHistoryResponse?.success,
+          dataCount: usageHistoryResponse?.data?.length || 0
+        });
       } catch (error: any) {
         // If the collection doesn't exist or there's an error, return empty results
-        console.error('Error getting medicine usage history:', error);
-        console.error('Error stack:', error?.stack);
-        console.error('Filters used:', filters);
+        console.error('[MEDICINE] Error getting medicine usage history:', error);
+        console.error('[MEDICINE] Error stack:', error?.stack);
+        console.error('[MEDICINE] Query options used:', queryOptions);
         usageHistoryResponse = {
           success: true,
           data: [],
@@ -638,31 +652,42 @@ export class MedicineController {
       // Map to treatment record format with legacy field support
       let treatmentRecords: any[] = [];
       try {
-        treatmentRecords = treatments.map((usage: any) => {
+        console.log('[MEDICINE] getTreatmentRecords - mapping treatments', { 
+          treatmentCount: treatments.length 
+        });
+        
+        treatmentRecords = treatments.map((usage: any, index: number) => {
           try {
-            // Get medicine name if available
+            // Get medicine name if available (don't fetch from DB, just use what's in the record)
             const medicineName = usage.medicineName || usage.medicine?.name || usage.medicine?.medicineName || 'Unknown';
             
             // Safely get date
             let dateStr = new Date().toISOString().split('T')[0];
             try {
               if (usage.date) {
-                dateStr = usage.date;
+                dateStr = typeof usage.date === 'string' ? usage.date : usage.date.toISOString().split('T')[0];
               } else if (usage.administeredDate) {
-                dateStr = usage.administeredDate;
+                dateStr = typeof usage.administeredDate === 'string' ? usage.administeredDate : usage.administeredDate.toISOString().split('T')[0];
               } else if (usage.administeredAt?.toDate) {
                 dateStr = usage.administeredAt.toDate().toISOString().split('T')[0];
               } else if (usage.administeredAt?.toMillis) {
                 dateStr = new Date(usage.administeredAt.toMillis()).toISOString().split('T')[0];
               } else if (usage.administeredAt?.seconds) {
                 dateStr = new Date(usage.administeredAt.seconds * 1000).toISOString().split('T')[0];
+              } else if (usage.administeredAt && typeof usage.administeredAt === 'string') {
+                dateStr = usage.administeredAt.split('T')[0];
               }
             } catch (e) {
+              console.warn('[MEDICINE] Error parsing date for treatment record', { 
+                index, 
+                error: e,
+                administeredAt: usage.administeredAt 
+              });
               // Use default date if parsing fails
             }
             
             return {
-              id: usage.id || '',
+              id: usage.id || `temp_${index}`,
               medicineId: usage.medicineId || usage.medicine?.id || '',
               birdGroup: usage.birdGroup || usage.birdGroupId || usage.penId || '',
               dosage: usage.dosage || usage.quantityUsed || '',
@@ -680,12 +705,24 @@ export class MedicineController {
               adminBy: usage.administeredBy || usage.adminBy || ''
             };
           } catch (error: any) {
-            console.error('Error mapping treatment record:', error, usage);
+            console.error('[MEDICINE] Error mapping treatment record:', { 
+              error: error.message,
+              errorStack: error.stack,
+              usageId: usage.id,
+              usageMedicineId: usage.medicineId,
+              index
+            });
             return null;
           }
         }).filter((record: any) => record !== null);
+        
+        console.log('[MEDICINE] getTreatmentRecords - mapping complete', { 
+          originalCount: treatments.length,
+          mappedCount: treatmentRecords.length 
+        });
       } catch (error: any) {
-        console.error('Error mapping treatment records:', error);
+        console.error('[MEDICINE] Error mapping treatment records:', error);
+        console.error('[MEDICINE] Error stack:', error?.stack);
         treatmentRecords = [];
       }
 
@@ -709,7 +746,14 @@ export class MedicineController {
         }
       }));
     } catch (error: any) {
-      console.error('Get treatment records error:', error);
+      console.error('[MEDICINE] Get treatment records error:', error);
+      console.error('[MEDICINE] Error stack:', error?.stack);
+      console.error('[MEDICINE] Error details:', {
+        message: error?.message,
+        name: error?.name,
+        code: error?.code,
+        userId: (req as any).user?.uid
+      });
       res.status(500).json(createErrorResponse(error.message || 'Failed to get treatment history'));
     }
   }
