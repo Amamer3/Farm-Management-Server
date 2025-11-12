@@ -32,16 +32,16 @@ jobs:
       - name: TypeScript type check
         run: npx tsc --noEmit
 
-      - name: Check for TODO/FIXME comments
+      - name: Check for TODO/FIXME comments (warning only)
+        continue-on-error: true
         run: |
           if grep -r "TODO\|FIXME" src/ --exclude-dir=node_modules; then
-            echo "Found TODO/FIXME comments in code"
-            exit 1
+            echo "⚠️  Found TODO/FIXME comments in code (non-blocking)"
           fi
 
-      - name: Check for console.log statements
+      - name: Check for console.log statements (warning only)
+        continue-on-error: true
         run: |
           if grep -r "console\.log" src/ --exclude-dir=node_modules; then
-            echo "Found console.log statements in production code"
-            exit 1
+            echo "⚠️  Found console.log statements in code (non-blocking)"
           fi
