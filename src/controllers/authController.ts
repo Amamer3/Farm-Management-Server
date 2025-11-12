@@ -243,14 +243,14 @@ export class AuthController extends BaseController {
 
       // Configure multer for avatar uploads
       const avatarStorage = multer.diskStorage({
-        destination: (req, file, cb) => {
+        destination: (req: any, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
           const uploadDir = path.join(process.cwd(), 'uploads', 'avatars');
           if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
           }
           cb(null, uploadDir);
         },
-        filename: (req, file, cb) => {
+        filename: (req: any, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
           const ext = path.extname(file.originalname);
           const filename = `avatar-${userId}-${Date.now()}${ext}`;
           cb(null, filename);
@@ -262,12 +262,12 @@ export class AuthController extends BaseController {
         limits: {
           fileSize: 5 * 1024 * 1024 // 5MB limit for avatars
         },
-        fileFilter: (req, file, cb) => {
+        fileFilter: (req: any, file: Express.Multer.File, cb: (error: Error | null, acceptFile: boolean) => void) => {
           const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
           if (allowedMimes.includes(file.mimetype)) {
             cb(null, true);
           } else {
-            cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed'));
+            cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed'), false);
           }
         }
       });
@@ -321,7 +321,7 @@ export class AuthController extends BaseController {
             resolve();
           } catch (error: any) {
             // Delete uploaded file if update fails
-            if (req.file && fs.existsSync(req.file.path)) {
+            if (req.file?.path && fs.existsSync(req.file.path)) {
               fs.unlinkSync(req.file.path);
             }
             const response = createErrorResponse(error.message || 'Failed to update avatar');

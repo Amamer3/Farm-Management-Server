@@ -46,7 +46,7 @@ const app = express();
 // CORS configuration - MUST be first to handle preflight requests
 console.log('CORS allowed origins:', config.cors.allowedOrigins);
 app.use(cors({
-  origin: function (origin, callback) {
+  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     

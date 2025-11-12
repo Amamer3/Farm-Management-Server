@@ -10,14 +10,14 @@ const firestoreService = FirestoreService;
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (req: any, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
     const uploadDir = path.join(process.cwd(), 'uploads');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
     cb(null, uploadDir);
   },
-  filename: (req, file, cb) => {
+  filename: (req: any, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   }
@@ -28,7 +28,7 @@ const upload = multer({
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: any, file: Express.Multer.File, cb: (error: Error | null, acceptFile: boolean) => void) => {
     // Allow images and documents
     const allowedMimes = [
       'image/jpeg',
@@ -45,7 +45,7 @@ const upload = multer({
     if (allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type'));
+      cb(new Error('Invalid file type'), false);
     }
   }
 });
@@ -84,7 +84,9 @@ export class UploadController {
           const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
           if (!allowedImageTypes.includes(req.file.mimetype)) {
             // Delete the uploaded file
-            fs.unlinkSync(req.file.path);
+            if (req.file?.path) {
+              fs.unlinkSync(req.file.path);
+            }
             res.status(400).json(createErrorResponse('Invalid image file type'));
             return resolve();
           }
@@ -151,7 +153,9 @@ export class UploadController {
           
           if (!allowedDocTypes.includes(req.file.mimetype)) {
             // Delete the uploaded file
-            fs.unlinkSync(req.file.path);
+            if (req.file?.path) {
+              fs.unlinkSync(req.file.path);
+            }
             res.status(400).json(createErrorResponse('Invalid document file type'));
             return resolve();
           }
