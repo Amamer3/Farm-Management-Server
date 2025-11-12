@@ -328,9 +328,22 @@ export const transformRequest = (req: Request, res: Response, next: NextFunction
       req.body = transformNumbers(req.body);
     }
 
-    // Transform query parameters
-    if (req.query) {
-      req.query = transformNumbers(req.query);
+    // Transform query parameters (req.query is read-only, so transform values in place)
+    if (req.query && typeof req.query === 'object') {
+      for (const key in req.query) {
+        if (req.query.hasOwnProperty(key)) {
+          const value = req.query[key];
+          if (typeof value === 'string' && !isNaN(Number(value)) && value.trim() !== '') {
+            (req.query as any)[key] = Number(value);
+          } else if (Array.isArray(value)) {
+            (req.query as any)[key] = value.map(item => 
+              typeof item === 'string' && !isNaN(Number(item)) && item.trim() !== '' 
+                ? Number(item) 
+                : item
+            );
+          }
+        }
+      }
     }
 
     // Transform date strings to Date objects for specific fields
