@@ -262,7 +262,7 @@ export class AuthController extends BaseController {
         limits: {
           fileSize: 5 * 1024 * 1024 // 5MB limit for avatars
         },
-        fileFilter: (req: any, file: Express.Multer.File, cb: (error: Error | null, acceptFile: boolean) => void) => {
+        fileFilter: (req: any, file: Express.Multer.File, cb: (error: Error | null, acceptFile?: boolean) => void) => {
           const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
           if (allowedMimes.includes(file.mimetype)) {
             cb(null, true);

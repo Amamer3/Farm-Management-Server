@@ -1,7 +1,13 @@
+// Load dotenv first to ensure env vars are available
+import * as dotenv from 'dotenv';
+dotenv.config();
+
 const nodeEnv = process.env.NODE_ENV || 'development';
 const isProduction = nodeEnv === 'production';
 
 // Validate required environment variables in production
+// Note: This validation happens at module load time
+// Make sure environment variables are set before importing this module
 if (isProduction) {
   const requiredVars = [
     'FIREBASE_PROJECT_ID',
@@ -13,16 +19,19 @@ if (isProduction) {
   const missingVars = requiredVars.filter(varName => !process.env[varName]);
   
   if (missingVars.length > 0) {
-    console.error('Missing required environment variables:', missingVars.join(', '));
+    console.error('❌ Missing required environment variables:', missingVars.join(', '));
     console.error('Please set all required environment variables before starting the server in production mode.');
+    console.error('Required variables:', requiredVars.join(', '));
     process.exit(1);
   }
 
   // Validate JWT secret is not the default
   if (process.env.JWT_SECRET === 'your-jwt-secret-key') {
-    console.error('JWT_SECRET must be changed from the default value in production');
+    console.error('❌ JWT_SECRET must be changed from the default value in production');
     process.exit(1);
   }
+  
+  console.log('✅ Environment variables validated successfully');
 }
 
 export const config = {

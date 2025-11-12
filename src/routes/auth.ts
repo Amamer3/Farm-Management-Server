@@ -8,14 +8,8 @@ import { UserRole } from '../models/types';
 const router = Router();
 const authController = new AuthController();
 
-// Handle preflight requests for all auth routes
-router.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.status(200).end();
-});
+// Note: Preflight OPTIONS requests are handled by CORS middleware in app.ts
+// No need for explicit OPTIONS route handler
 
 // Public routes (no authentication required) - Apply strict rate limiting
 router.post('/login', authRateLimit, authController.login.bind(authController));

@@ -39,21 +39,37 @@ class CacheService {
 
     this.redis.on('connect', () => {
       this.isConnected = true;
-      logger.info('Redis connected successfully');
+      try {
+        logger.info('Redis connected successfully');
+      } catch (e) {
+        console.log('Redis connected successfully');
+      }
     });
 
     this.redis.on('error', (error) => {
       this.isConnected = false;
-      logger.error('Redis connection error', { error: error.message });
+      try {
+        logger.error('Redis connection error', { error: error.message });
+      } catch (e) {
+        console.error('Redis connection error:', error.message);
+      }
     });
 
     this.redis.on('close', () => {
       this.isConnected = false;
-      logger.warn('Redis connection closed');
+      try {
+        logger.warn('Redis connection closed');
+      } catch (e) {
+        console.warn('Redis connection closed');
+      }
     });
 
     this.redis.on('reconnecting', () => {
-      logger.info('Redis reconnecting...');
+      try {
+        logger.info('Redis reconnecting...');
+      } catch (e) {
+        console.log('Redis reconnecting...');
+      }
     });
   }
 

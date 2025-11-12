@@ -125,9 +125,22 @@ export class ServiceFactory {
   }
 
   static createCacheService(): ICacheService {
-    // Return actual cache service implementation
-    const CacheService = require('../services/cacheService').default;
-    return CacheService;
+    try {
+      // Return actual cache service implementation
+      const CacheService = require('../services/cacheService').default;
+      return CacheService;
+    } catch (error) {
+      console.error('Failed to create cache service:', error);
+      // Return a mock cache service that doesn't actually cache
+      return {
+        get: async () => null,
+        set: async () => true,
+        del: async () => true,
+        exists: async () => false,
+        flush: async () => true,
+        healthCheck: async () => false
+      };
+    }
   }
 
   static createLogger(): ILogger {
