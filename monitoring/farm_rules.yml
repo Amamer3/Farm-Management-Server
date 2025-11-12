@@ -1,0 +1,83 @@
+groups:
+- name: farm-management-alerts
+  rules:
+  - alert: HighErrorRate
+    expr: rate(http_requests_total{status_code=~"5.."}[5m]) > 0.1
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High error rate detected"
+      description: "Error rate is {{ $value }} errors per second"
+
+  - alert: HighResponseTime
+    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High response time"
+      description: "95th percentile response time is {{ $value }} seconds"
+
+  - alert: HighMemoryUsage
+    expr: nodejs_memory_usage_bytes{type="heapUsed"} / nodejs_memory_usage_bytes{type="heapTotal"} > 0.9
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High memory usage"
+      description: "Memory usage is {{ $value | humanizePercentage }}"
+
+  - alert: LowCacheHitRate
+    expr: cache_hit_rate < 0.7
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Low cache hit rate"
+      description: "Cache hit rate is {{ $value | humanizePercentage }}"
+
+  - alert: DatabaseConnectionFailure
+    expr: rate(database_operations_total{result="error"}[5m]) > 0.05
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Database connection issues"
+      description: "Database error rate is {{ $value }} errors per second"
+
+  - alert: ServiceDown
+    expr: up{job="farm-management-server"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Farm Management Server is down"
+      description: "The Farm Management Server has been down for more than 1 minute"
+
+  - alert: HighEggProductionDrop
+    expr: (farm_daily_egg_production - farm_daily_egg_production offset 1d) / farm_daily_egg_production offset 1d < -0.2
+    for: 1h
+    labels:
+      severity: warning
+    annotations:
+      summary: "Significant drop in egg production"
+      description: "Egg production has dropped by {{ $value | humanizePercentage }} compared to yesterday"
+
+  - alert: LowFeedStock
+    expr: farm_feed_stock_remaining < 100
+    for: 30m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Low feed stock alert"
+      description: "Feed stock is running low: {{ $value }} units remaining"
+
+  - alert: MedicineExpiryWarning
+    expr: time() - farm_medicine_expiry_timestamp < 86400 * 7
+    for: 0m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Medicine expiring soon"
+      description: "Medicine {{ $labels.medicine_name }} expires in {{ $value | humanizeDuration }}"

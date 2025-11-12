@@ -1,0 +1,58 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 2 * * 1' # Weekly on Monday at 2 AM
+
+jobs:
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level moderate
+
+      - name: Run Snyk security scan
+        continue-on-error: true
+        uses: snyk/actions/node@master
+        with:
+          args: --severity-threshold=high
+
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/init@v2
+        with:
+          languages: javascript
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+
+      - name: Check for hardcoded secrets
+        run: |
+          # Check for common secret patterns
+          if grep -r -E "(password|secret|key|token).*=.*['\"][^'\"]{8,}['\"]" src/ --exclude-dir=node_modules; then
+            echo "Potential hardcoded secrets found"
+            exit 1
+          fi
+
+      - name: Check for SQL injection patterns
+        run: |
+          if grep -r -E "(SELECT|INSERT|UPDATE|DELETE).*\+" src/ --exclude-dir=node_modules; then
+            echo "Potential SQL injection patterns found"
+            exit 1
+          fi

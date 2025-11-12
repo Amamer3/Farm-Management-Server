@@ -1,0 +1,32 @@
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alerts@farm-management.com'
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+
+receivers:
+- name: 'web.hook'
+  webhook_configs:
+  - url: 'http://localhost:5001/'
+
+- name: 'email'
+  email_configs:
+  - to: 'admin@farm-management.com'
+    subject: 'Farm Management Alert: {{ .GroupLabels.alertname }}'
+    body: |
+      {{ range .Alerts }}
+      Alert: {{ .Annotations.summary }}
+      Description: {{ .Annotations.description }}
+      {{ end }}
+
+- name: 'slack'
+  slack_configs:
+  - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+    channel: '#farm-alerts'
+    title: 'Farm Management Alert'
+    text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
