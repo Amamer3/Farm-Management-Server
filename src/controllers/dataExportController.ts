@@ -264,7 +264,7 @@ export class DataExportController extends BaseController {
         // Table data
         collections.forEach(collection => {
           if (y > 700) {
-            doc.addPage();
+            (doc as any).addPage();
             y = 50;
           }
           
@@ -354,7 +354,7 @@ export class DataExportController extends BaseController {
         // Table data
         birds.forEach(bird => {
           if (y > 700) {
-            doc.addPage();
+            (doc as any).addPage();
             y = 50;
           }
           
@@ -442,7 +442,7 @@ export class DataExportController extends BaseController {
         // Table data
         feedInventory.forEach(feed => {
           if (y > 700) {
-            doc.addPage();
+            (doc as any).addPage();
             y = 50;
           }
           
