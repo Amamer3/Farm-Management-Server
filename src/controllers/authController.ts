@@ -95,6 +95,16 @@ export class AuthController extends BaseController {
 
         // Normalize email: lowercase and trim before authentication
         const normalizedEmail = email.toLowerCase().trim();
+        
+        // Log login request (without password) for debugging
+        console.log('[AUTH CONTROLLER] Login request received', {
+          email: normalizedEmail,
+          emailLength: normalizedEmail.length,
+          hasPassword: !!password,
+          passwordLength: password ? password.length : 0,
+          ip: req.ip,
+          userAgent: req.get('User-Agent')
+        });
 
         // Sign in with Better Auth
         const authUser = await this.firebaseService.signInWithEmailAndPassword(normalizedEmail, password);

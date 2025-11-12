@@ -305,6 +305,11 @@ class FirestoreService {
       // Normalize email: lowercase and trim
       const normalizedEmail = email.toLowerCase().trim();
       
+      console.log('[FIRESTORE] getUserByEmail - searching for', { 
+        normalizedEmail,
+        emailLength: normalizedEmail.length 
+      });
+      
       // Try exact match first (case-sensitive for backward compatibility)
       let snapshot = await this.db
         .collection('users')
@@ -312,27 +317,52 @@ class FirestoreService {
         .limit(1)
         .get();
 
+      console.log('[FIRESTORE] getUserByEmail - exact match result', { 
+        found: !snapshot.empty,
+        count: snapshot.size 
+      });
+
       // If not found, try case-insensitive search by getting all users and filtering
       if (snapshot.empty) {
+        console.log('[FIRESTORE] getUserByEmail - trying case-insensitive search');
         const allUsersSnapshot = await this.db
           .collection('users')
           .get();
         
+        console.log('[FIRESTORE] getUserByEmail - total users in collection', { 
+          totalUsers: allUsersSnapshot.size 
+        });
+        
         const matchingUser = allUsersSnapshot.docs.find(doc => {
           const userData = doc.data() as User;
-          return userData.email?.toLowerCase().trim() === normalizedEmail;
+          const userEmailNormalized = userData.email?.toLowerCase().trim();
+          const matches = userEmailNormalized === normalizedEmail;
+          if (matches) {
+            console.log('[FIRESTORE] getUserByEmail - found match in case-insensitive search', {
+              userId: userData.id,
+              storedEmail: userData.email,
+              normalizedStoredEmail: userEmailNormalized
+            });
+          }
+          return matches;
         });
 
         if (matchingUser) {
           return matchingUser.data() as User;
         }
         
+        console.log('[FIRESTORE] getUserByEmail - no user found', { normalizedEmail });
         return null;
       }
 
-      return snapshot.docs[0].data() as User;
+      const user = snapshot.docs[0].data() as User;
+      console.log('[FIRESTORE] getUserByEmail - user found via exact match', {
+        userId: user.id,
+        email: user.email
+      });
+      return user;
     } catch (error) {
-      console.error('Error getting user by email:', error);
+      console.error('[FIRESTORE] Error getting user by email:', error);
       throw error;
     }
   }

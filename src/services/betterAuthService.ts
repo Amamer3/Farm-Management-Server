@@ -102,33 +102,58 @@ class BetterAuthService {
       // Normalize email: lowercase and trim
       const normalizedEmail = email.toLowerCase().trim();
       
+      // Log login attempt (without password) - this will show in production logs
+      console.log('[AUTH] Login attempt', { 
+        email: normalizedEmail, 
+        emailLength: normalizedEmail.length,
+        hasPassword: !!password,
+        passwordLength: password ? password.length : 0
+      });
+      
       // Get user from Firestore
       const user = await firestoreService.getUserByEmail(normalizedEmail);
       if (!user) {
-        // Log for debugging (without sensitive info)
-        console.error('Login failed: User not found', { email: normalizedEmail });
+        // Log for debugging (without sensitive info) - use console.log so it shows in production
+        console.log('[AUTH] Login failed: User not found', { email: normalizedEmail });
         throw new Error('Invalid email or password');
       }
 
+      // Log user found
+      console.log('[AUTH] User found', { 
+        userId: user.id, 
+        email: user.email,
+        isActive: user.isActive,
+        hasPasswordHash: !!(user as any).passwordHash,
+        role: user.role
+      });
+
       // Check if user is active
       if (user.isActive === false) {
-        console.error('Login failed: Account deactivated', { userId: user.id, email: normalizedEmail });
+        console.log('[AUTH] Login failed: Account deactivated', { userId: user.id, email: normalizedEmail });
         throw new Error('User account is deactivated');
       }
 
       // Verify password
       const passwordHash = (user as any).passwordHash;
       if (!passwordHash) {
-        console.error('Login failed: Password not set', { userId: user.id, email: normalizedEmail });
+        console.log('[AUTH] Login failed: Password not set', { userId: user.id, email: normalizedEmail });
         throw new Error('Password not set for this user. Please contact an administrator to reset your password or use the password reset feature.');
       }
 
       const isPasswordValid = await bcrypt.compare(password, passwordHash);
       if (!isPasswordValid) {
         // Log for debugging (without sensitive info)
-        console.error('Login failed: Invalid password', { userId: user.id, email: normalizedEmail, hasPasswordHash: !!passwordHash });
+        console.log('[AUTH] Login failed: Invalid password', { 
+          userId: user.id, 
+          email: normalizedEmail, 
+          hasPasswordHash: !!passwordHash,
+          passwordHashLength: passwordHash ? passwordHash.length : 0
+        });
         throw new Error('Invalid email or password');
       }
+
+      // Log successful login
+      console.log('[AUTH] Login successful', { userId: user.id, email: normalizedEmail });
 
       // Generate tokens
       const token = this.generateToken(user.id, user.email, user.role);
@@ -147,10 +172,20 @@ class BetterAuthService {
         error.message.includes('deactivated') ||
         error.message.includes('Password not set')
       )) {
+        // Log the error before re-throwing
+        console.log('[AUTH] Login error (re-throwing)', { 
+          errorMessage: error.message,
+          errorType: error.constructor.name
+        });
         throw error;
       }
       
-      console.error('Error signing in:', error);
+      // Log unexpected errors
+      console.log('[AUTH] Unexpected login error', { 
+        errorMessage: error.message,
+        errorType: error.constructor.name,
+        errorStack: error.stack
+      });
       throw new Error('Invalid email or password');
     }
   }
