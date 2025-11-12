@@ -17,45 +17,38 @@ if (!fs.existsSync(logsDir)) {
 
 try {
   // Initialize all services BEFORE importing the app
-  console.log('Initializing services...');
+  logger.info('Initializing services...');
   initializeServices();
-  console.log('Services initialized successfully');
+  logger.info('Services initialized successfully');
 } catch (error) {
-  console.error('Failed to initialize services:', error);
+  logger.error('Failed to initialize services', { error });
   process.exit(1);
 }
 
 // Import app
+logger.info('Importing app...');
 import app from './app';
+logger.info('App imported successfully');
 
 // Start metrics collection
 try {
-  console.log('Starting metrics collection...');
+  logger.info('Starting metrics collection...');
   startMetricsCollection();
-  console.log('Metrics collection started');
+  logger.info('Metrics collection started');
 } catch (error) {
-  console.error('Failed to start metrics collection:', error);
+  logger.warn('Failed to start metrics collection', { error });
   // Don't exit - metrics is optional
 }
 
 // Handle uncaught exceptions gracefully
 process.on('uncaughtException', (err: Error) => {
-  console.error('Uncaught Exception - Shutting down gracefully', {
-    name: err.name,
-    message: err.message,
-    stack: err.stack
+  logger.error('Uncaught Exception - Shutting down gracefully', {
+    error: {
+      name: err.name,
+      message: err.message,
+      stack: err.stack
+    }
   });
-  try {
-    logger.error('Uncaught Exception - Shutting down gracefully', {
-      error: {
-        name: err.name,
-        message: err.message,
-        stack: err.stack
-      }
-    });
-  } catch (logError) {
-    // Logger might not be initialized
-  }
   
   // Give time for logs to be written
   setTimeout(() => {
@@ -65,7 +58,7 @@ process.on('uncaughtException', (err: Error) => {
 
 // Handle unhandled promise rejections gracefully
 process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
-  console.error('Unhandled Rejection - Shutting down gracefully', {
+  logger.error('Unhandled Rejection - Shutting down gracefully', {
     reason: reason instanceof Error ? {
       name: reason.name,
       message: reason.message,
@@ -73,18 +66,6 @@ process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
     } : reason,
     promise: promise.toString()
   });
-  try {
-    logger.error('Unhandled Rejection - Shutting down gracefully', {
-      reason: reason instanceof Error ? {
-        name: reason.name,
-        message: reason.message,
-        stack: reason.stack
-      } : reason,
-      promise: promise.toString()
-    });
-  } catch (logError) {
-    // Logger might not be initialized
-  }
   
   // Give time for logs to be written
   setTimeout(() => {
@@ -94,14 +75,30 @@ process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
 
 // Start server
 const PORT = config.port || 3000;
-const server = app.listen(PORT, () => {
-  logger.info(`🚀 Server running on port ${PORT}`);
-  logger.info(`📱 Environment: ${config.nodeEnv}`);
-  logger.info(`🔥 Firebase initialized successfully`);
-  logger.info(`📊 API Documentation available at http://localhost:${PORT}/docs`);
-  logger.info(`📋 API Info available at http://localhost:${PORT}/api`);
-  logger.info(`🔄 Health check available at http://localhost:${PORT}/health`);
-});
+
+let server;
+try {
+  server = app.listen(PORT, () => {
+    logger.info(`🚀 Server running on port ${PORT}`);
+    logger.info(`📱 Environment: ${config.nodeEnv}`);
+    logger.info(`🔥 Firebase initialized successfully`);
+    
+    if (!config.isProduction) {
+      logger.info(`📊 API Documentation available at http://localhost:${PORT}/docs`);
+      logger.info(`📋 API Info available at http://localhost:${PORT}/api`);
+    }
+    
+    logger.info(`🔄 Health check available at /health`);
+  });
+} catch (error) {
+  logger.error('Failed to start server', {
+    error: {
+      message: (error as Error)?.message,
+      stack: (error as Error)?.stack
+    }
+  });
+  process.exit(1);
+}
 
 // Handle server errors gracefully
 server.on('error', (error: NodeJS.ErrnoException) => {

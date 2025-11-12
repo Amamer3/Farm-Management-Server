@@ -239,7 +239,7 @@ export const optionalAuth = async (
     next();
   } catch (error) {
     // Don't fail on optional auth errors, just continue without user
-    console.warn('Optional authentication failed:', error);
+    // Optional auth failed - continue without authentication
     next();
   }
 };

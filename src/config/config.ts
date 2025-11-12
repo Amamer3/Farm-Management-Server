@@ -1,6 +1,34 @@
+const nodeEnv = process.env.NODE_ENV || 'development';
+const isProduction = nodeEnv === 'production';
+
+// Validate required environment variables in production
+if (isProduction) {
+  const requiredVars = [
+    'FIREBASE_PROJECT_ID',
+    'FIREBASE_PRIVATE_KEY',
+    'FIREBASE_CLIENT_EMAIL',
+    'JWT_SECRET'
+  ];
+
+  const missingVars = requiredVars.filter(varName => !process.env[varName]);
+  
+  if (missingVars.length > 0) {
+    console.error('Missing required environment variables:', missingVars.join(', '));
+    console.error('Please set all required environment variables before starting the server in production mode.');
+    process.exit(1);
+  }
+
+  // Validate JWT secret is not the default
+  if (process.env.JWT_SECRET === 'your-jwt-secret-key') {
+    console.error('JWT_SECRET must be changed from the default value in production');
+    process.exit(1);
+  }
+}
+
 export const config = {
   port: process.env.PORT || 3000,
-  nodeEnv: process.env.NODE_ENV || 'development',
+  nodeEnv,
+  isProduction,
   firebase: {
     projectId: process.env.FIREBASE_PROJECT_ID,
     privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
@@ -14,7 +42,9 @@ export const config = {
   cors: {
     allowedOrigins: process.env.CORS_ORIGIN 
       ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-      : ['http://localhost:8080', 'http://localhost:3000', 'http://127.0.0.1:8080', 'http://127.0.0.1:3000'],
+      : isProduction 
+        ? [] // No default origins in production - must be explicitly set
+        : ['http://localhost:8080', 'http://localhost:3000', 'http://127.0.0.1:8080', 'http://127.0.0.1:3000', 'https://farm-management-system-five.vercel.app'],
     credentials: true
   },
   rateLimit: {

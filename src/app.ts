@@ -44,7 +44,6 @@ import dataExportRoutes from './routes/dataExport';
 const app = express();
 
 // CORS configuration - MUST be first to handle preflight requests
-console.log('CORS allowed origins:', config.cors.allowedOrigins);
 app.use(cors({
   origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
     // Allow requests with no origin (like mobile apps or curl requests)
@@ -54,7 +53,6 @@ app.use(cors({
       return callback(null, true);
     }
     
-    console.log('CORS blocked origin:', origin);
     // Return error that will be handled by error handler middleware
     return callback(new Error('Not allowed by CORS policy'));
   },
@@ -92,9 +90,8 @@ app.use(auditLogger);
 app.use(compression());
 
 // Rate limiting (skip in development if RATE_LIMIT_DISABLED is set)
-const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production';
-if (process.env.RATE_LIMIT_DISABLED && isDevelopment) {
-  console.log('Rate limiting disabled in development mode');
+if (process.env.RATE_LIMIT_DISABLED && !config.isProduction) {
+  // Rate limiting disabled in development mode
 } else {
   app.use(rateLimit(rateLimitConfig));
 }
